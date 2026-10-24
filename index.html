@@ -1,13 +1,25 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head> <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/ras-attendance-pwa/manifest.webmanifest">
+<meta name="theme-color" content="#17365d">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17365d">
   <title>RAS Attendance</title>
 </head>
-<body style="font-family:Arial,sans-serif;text-align:center;padding:40px 16px">
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(
+      "/ras-attendance-pwa/service-worker.js"
+    ).catch(error => {
+      console.error("Service Worker registration failed:", error);
+    });
+  });
+}
+</script><body style="font-family:Arial,sans-serif;text-align:center;padding:40px 16px">
   <h2>RAS Builders and Developers</h2>
   <p>Staff GPS Attendance</p>
   <p>RAS Attendance PWA setup</p>

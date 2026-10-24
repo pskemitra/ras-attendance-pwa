@@ -1,0 +1,12 @@
+
+{
+  "name": "RAS Builders and Developers Attendance",
+  "short_name": "RAS Attendance",
+  "description": "Staff GPS Attendance",
+  "start_url": "/ras-attendance-pwa/",
+  "scope": "/ras-attendance-pwa/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f6fa",
+  "theme_color": "#17365d"
+}

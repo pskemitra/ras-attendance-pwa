@@ -1,27 +1,181 @@
 
 <!DOCTYPE html>
-<html lang="en">
-<head> <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="manifest" href="/ras-attendance-pwa/manifest.webmanifest">
-<meta name="theme-color" content="#17365d">
+<html lang="hi">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17365d">
-  <title>RAS Attendance</title>
+  <link rel="manifest" href="/ras-attendance-pwa/manifest.webmanifest">
+  <title>RAS Staff Attendance</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Arial, sans-serif;
+      background: #f1f5f9; color: #172b4d;
+    }
+    header {
+      background: #17365d; color: white; text-align: center;
+      padding: 25px 15px;
+    }
+    header h1 { font-size: 23px; margin: 0 0 8px; }
+    header p { margin: 0; font-size: 14px; }
+    main {
+      max-width: 460px; margin: 24px auto; padding: 0 14px;
+    }
+    .card {
+      background: white; padding: 22px; border-radius: 16px;
+      box-shadow: 0 5px 20px #0000000d;
+    }
+    label { display: block; font-weight: bold; margin: 15px 0 7px; }
+    input {
+      width: 100%; padding: 13px; border: 1px solid #cbd5e1;
+      border-radius: 9px; font-size: 16px;
+    }
+    button {
+      width: 100%; padding: 14px; margin-top: 15px;
+      border: 0; border-radius: 9px; font-size: 16px;
+      font-weight: bold; cursor: pointer;
+    }
+    .in { background: #166534; color: white; }
+    .out { background: #17365d; color: white; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #message {
+      margin-top: 18px; padding: 12px; border-radius: 9px;
+      background: #f1f5f9; white-space: pre-wrap; line-height: 1.5;
+    }
+    .note { font-size: 12px; color: #64748b; line-height: 1.5; }
+  </style>
 </head>
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register(
-      "/ras-attendance-pwa/service-worker.js"
-    ).catch(error => {
-      console.error("Service Worker registration failed:", error);
-    });
-  });
-}
-</script><body style="font-family:Arial,sans-serif;text-align:center;padding:40px 16px">
-  <h2>RAS Builders and Developers</h2>
-  <p>Staff GPS Attendance</p>
-  <p>RAS Attendance PWA setup</p>
+<body>
+  <header>
+    <h1>RAS Builders and Developers</h1>
+    <p>Staff GPS Attendance System</p>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Employee Attendance</h2>
+
+      <label for="employeeId">Employee ID</label>
+      <input id="employeeId" autocomplete="username"
+             placeholder="अपनी Employee ID डालें">
+
+      <label for="pin">Attendance PIN</label>
+      <input id="pin" type="password" inputmode="numeric"
+             autocomplete="current-password" placeholder="अपना PIN डालें">
+
+      <button class="in" id="checkIn" onclick="markAttendance('CHECK_IN')">
+        Check In
+      </button>
+      <button class="out" id="checkOut" onclick="markAttendance('CHECK_OUT')">
+        Check Out
+      </button>
+
+      <div id="message" role="status" aria-live="polite">
+        कृपया Employee ID और PIN भरें।
+      </div>
+      <p class="note">
+        GPS अनुमति दें और साइट के निर्धारित क्षेत्र में रहकर Attendance लगाएँ।
+        यह सुविधा HTTPS पर काम करती है।
+      </p>
+    </div>
+  </main>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzk0ssjf7BCV3pBwuFBtooH-oS2aZWKU0RuIoHUL7eD9Yln8zrohsfp_UPhtUpUMB_2CA/exec";
+
+    const messageBox = document.getElementById("message");
+
+    function showMessage(text) {
+      messageBox.textContent = text;
+    }
+
+    function setBusy(busy) {
+      document.getElementById("checkIn").disabled = busy;
+      document.getElementById("checkOut").disabled = busy;
+    }
+
+    function getPosition() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("इस डिवाइस में GPS उपलब्ध नहीं है।"));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          position => resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          }),
+          error => reject(new Error(
+            error.code === 1 ? "GPS अनुमति दें।" :
+            error.code === 2 ? "GPS Location नहीं मिल रही।" :
+            "GPS मिलने में समय लगा। फिर प्रयास करें।"
+          )),
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+        );
+      });
+    }
+
+    async function markAttendance(action) {
+      const employeeId = document.getElementById("employeeId").value.trim();
+      const pin = document.getElementById("pin").value.trim();
+
+      if (!employeeId || !pin) {
+        showMessage("कृपया Employee ID और PIN भरें।");
+        return;
+      }
+
+      setBusy(true);
+      showMessage("GPS Location प्राप्त की जा रही है...");
+
+      try {
+        const gps = await getPosition();
+        showMessage("Attendance भेजी जा रही है...");
+
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "SUBMIT_ATTENDANCE",
+            employeeId: employeeId,
+            pin: pin,
+            actionType: action,
+            ...gps
+          }),
+          redirect: "follow"
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.ok !== true) {
+          throw new Error(result.message || "Attendance दर्ज नहीं हुई।");
+        }
+
+        const data = result.data || result.result || result;
+        showMessage(
+          (data.message || "Attendance सफलतापूर्वक दर्ज हुई।") +
+          (data.time ? "\nसमय: " + data.time : "") +
+          (data.distance != null ? "\nसाइट से दूरी: " + data.distance + " मीटर" : "")
+        );
+      } catch (error) {
+        showMessage(
+          "Attendance पूरी नहीं हुई।\n" +
+          (error.message || "कृपया दोबारा प्रयास करें।") +
+          "\n\nयदि API/CORS त्रुटि है, तो Apps Script API को जाँचना होगा।"
+        );
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register(
+          "/ras-attendance-pwa/service-worker.js"
+        ).catch(error => console.error(error));
+      });
+    }
+  </script>
 </body>
 </html>
